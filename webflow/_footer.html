@@ -1,0 +1,17 @@
+<!-- ============================================================
+     Brand Vision — Site Settings → Custom Code → FOOTER
+     Version-controlled source of truth for the before-</body> block.
+     Changes vs previous footer:
+     - Lenis now loads with defer
+     - the inline Lenis init moved INTO js/brandvm.js (guarded)
+     - Slater JS replaced by the jsDelivr build
+     Deferred scripts execute in document order, so Lenis is always
+     ready before brandvm.js runs its init.
+     Remember to bump @1.0.0 when you tag a new release.
+     ============================================================ -->
+
+<!-- Lenis Smooth Scrolling -->
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.3.23/dist/lenis.min.js" defer></script>
+
+<!-- Site JS (GitHub → jsDelivr, pinned release) -->
+<script src="https://cdn.jsdelivr.net/gh/YOUR-GITHUB-USER/brandvm-site-code@1.0.0/js/brandvm.min.js" defer></script>
