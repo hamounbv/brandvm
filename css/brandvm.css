@@ -2,7 +2,7 @@
    Brand Vision — brandvm.css
    Source of truth for all site custom CSS.
    Serve via jsDelivr:
-   https://cdn.jsdelivr.net/gh/YOUR-GITHUB-USER/brandvm-site-code@1.0.0/css/brandvm.min.css
+   https://cdn.jsdelivr.net/gh/hamounbv/brandvm@1.0.0/css/brandvm.min.css
    (.min.css is generated automatically by jsDelivr)
    Consolidates: Slater global CSS + G | Embed Code "staging" block +
    the 7 scattered page/component CSS embeds (deduped, drift resolved).
