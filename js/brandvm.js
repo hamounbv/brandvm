@@ -2,7 +2,7 @@
    Brand Vision — brandvm.js
    Source of truth for all site custom JS.
    Serve via jsDelivr (load AFTER lenis, both with defer):
-   https://cdn.jsdelivr.net/gh/YOUR-GITHUB-USER/brandvm-site-code@1.0.0/js/brandvm.min.js
+   https://cdn.jsdelivr.net/gh/hamounbv/brandvm@1.0.0/js/brandvm.min.js
    (.min.js is generated automatically by jsDelivr)
    Contents: Lenis smooth-scroll init (moved here from the Site
    Settings footer, now guarded) + the former Slater Global.js
