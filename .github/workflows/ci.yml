@@ -23,7 +23,7 @@ jobs:
       - name: Require release artifacts in git
         run: git ls-files --error-unmatch dist/index.js dist/styles.css dist/version.json
       - name: Check committed build and snippets
-        run: git diff --exit-code -- dist webflow/_header.html webflow/_footer.html
+        run: git diff --exit-code -- dist webflow/_header.html webflow/_footer.html webflow/global-embed.html
       - uses: actions/upload-pages-artifact@v3
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         with:
