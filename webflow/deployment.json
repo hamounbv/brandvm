@@ -1,0 +1,9 @@
+{
+  "production": {
+    "version": "1.0.2",
+    "js": "https://cdn.jsdelivr.net/gh/hamounbv/brandvm@1.0.2/js/brandvm.min.js",
+    "css": "https://cdn.jsdelivr.net/gh/hamounbv/brandvm@1.0.1/css/brandvm.min.css"
+  },
+  "stagingBase": "https://hamounbv.github.io/brandvm/",
+  "devBase": "http://localhost:3000/"
+}
