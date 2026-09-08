@@ -1,5 +1,5 @@
 import * as esbuild from 'esbuild';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, rm } from 'node:fs/promises';
 
 const dev = process.argv.includes('--dev');
 const { version } = JSON.parse(await readFile(new URL('./package.json', import.meta.url)));
@@ -23,6 +23,8 @@ if (dev) {
   await ctx.serve({ servedir: 'dist', host: '127.0.0.1', port: 3000, cors: { origin: '*' } });
   console.log('Webflow staging: add ?bv-dev=1 to use http://localhost:3000');
 } else {
+  // A production build must not retain maps or other files from pnpm dev.
+  await rm('dist', { recursive: true, force: true });
   await esbuild.build(config);
   await writeFile('dist/version.json', JSON.stringify({ version }) + '\n');
 }
