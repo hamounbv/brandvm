@@ -49,7 +49,7 @@
 })();
 
 /* ------------------------------------------------
-   Former Slater Global.js (verbatim)
+   Former Slater Global.js (with maintenance updates)
 ------------------------------------------------ */
 
 console.log("%cThis site was built by Brand Vision Marketing",
@@ -60,6 +60,9 @@ const SmartSwiper = {
   reduceMotion: typeof window.matchMedia === "function" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   debounceT: null,
+  observer: null,
+  pendingInits: new WeakSet(),
+  jsLoading: null,
   // ---------- configuration ----------
   CONFIGS: [
   {
@@ -110,21 +113,41 @@ const SmartSwiper = {
     link.href = "https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css";
     document.head.appendChild(link);
   },
-  ensureJS(cb) {
-    if (window.Swiper) return cb();
+  ensureJS() {
+    if (window.Swiper) return Promise.resolve();
+    if (this.jsLoading) return this.jsLoading;
     const existing = document.querySelector(
       'script[src*="swiper-bundle.min.js"]'
     );
-    if (existing) {
-      const wait = () => (window.Swiper ? cb() : setTimeout(wait, 40));
-      return wait();
-    }
-    const s = document.createElement("script");
-    s.src = "https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js";
-    s.defer = true;
-    s.onload = cb;
-    s.onerror = () => {};
-    document.body.appendChild(s);
+    const script = existing || document.createElement("script");
+    const loading = new Promise((resolve, reject) => {
+      const cleanup = () => {
+        script.removeEventListener("load", onLoad);
+        script.removeEventListener("error", onError);
+      };
+      const onError = () => {
+        cleanup();
+        reject(new Error("Unable to load Swiper"));
+      };
+      const onLoad = () => {
+        if (!window.Swiper) return onError();
+        cleanup();
+        resolve();
+      };
+      script.addEventListener("load", onLoad);
+      script.addEventListener("error", onError);
+      if (!existing) {
+        script.src = "https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js";
+        script.defer = true;
+        document.body.appendChild(script);
+      }
+    });
+    this.jsLoading = loading.catch((err) => {
+      this.jsLoading = null;
+      if (!existing) script.remove();
+      throw err;
+    });
+    return this.jsLoading;
   },
   // ---------- option building ----------
   normalizeOpts(base) {
@@ -265,29 +288,47 @@ const SmartSwiper = {
     if (!sels) return [];
     return Array.from(document.querySelectorAll(sels));
   },
+  loadAndInit(el) {
+    if (!this.isDisplayed(el) || this.pendingInits.has(el)) return;
+    this.pendingInits.add(el);
+    this.ensureCSS();
+    this.ensureJS()
+      .then(() => {
+        this.initOne(el);
+        // A tab may have hidden the slider while its script was loading.
+        // Keep observing until an instance was actually created.
+        if (this.getInstance(el) && this.observer) this.observer.unobserve(el);
+      })
+      .catch((err) => console.error("[SmartSwiper] loading failed", err))
+      .finally(() => this.pendingInits.delete(el));
+  },
   observeAndInit(els) {
     if (!els.length) return;
-    // Init/repair anything visible right now
-    els.forEach((el) => this.initOne(el));
-    // Lazy-init the rest when they scroll into view
-    if (!this.hasIO) return;
-    const io = new IntersectionObserver(
-      (entries, obs) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            this.initOne(e.target);
-            obs.unobserve(e.target);
-          }
-        });
-      }, { rootMargin: "200px 0px" }
-    );
-    els.forEach((el) => io.observe(el));
+    if (this.hasIO && !this.observer) {
+      this.observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) this.loadAndInit(entry.target);
+          });
+        }, { rootMargin: "200px 0px" }
+      );
+    }
+    els.forEach((el) => {
+      if (this.getInstance(el)) {
+        this.repairIfNeeded(el);
+      } else if (this.observer) {
+        this.observer.observe(el);
+      } else {
+        // Preserve functionality in browsers without IntersectionObserver.
+        this.loadAndInit(el);
+      }
+    });
   },
   boot() {
     const els = this.scan();
     if (!els.length) return;
-    this.ensureCSS();
-    this.ensureJS(() => this.observeAndInit(els));
+    // Neither Swiper asset is requested until a slider approaches the viewport.
+    this.observeAndInit(els);
   },
   refresh() {
     clearTimeout(this.debounceT);
