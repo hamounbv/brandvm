@@ -4,12 +4,10 @@ const { resolve } = require("node:path");
 const test = require("node:test");
 const vm = require("node:vm");
 
-// Exercise the production module without booting unrelated site features.
-const source = readFileSync(resolve(__dirname, "../js/brandvm.js"), "utf8");
-const moduleSource = source.slice(
-  source.indexOf("const SmartSwiper ="),
-  source.indexOf("const SmartFlareBorder =")
-);
+// Compile the actual TypeScript module; no copied implementation in the fixture.
+const { transformSync } = require("esbuild");
+const source = readFileSync(resolve(__dirname, "../src/modules/newsletter.ts"), "utf8");
+const moduleSource = transformSync(source, { loader: "ts", format: "cjs", target: "es2019" }).code;
 const settle = () => new Promise((resolve) => setImmediate(resolve));
 
 function setup({ count = 1, hasIO = true, reduceMotion = false } = {}) {
@@ -63,9 +61,10 @@ function setup({ count = 1, hasIO = true, reduceMotion = false } = {}) {
   if (hasIO) window.IntersectionObserver = IntersectionObserver;
   const context = vm.createContext({
     window, document, IntersectionObserver, setTimeout, clearTimeout,
+    module: { exports: {} },
     console: { error: (...args) => errors.push(args) },
   });
-  vm.runInContext(`${moduleSource}\nglobalThis.smartSwiper = SmartSwiper;`, context);
+  vm.runInContext(`${moduleSource}\nglobalThis.smartSwiper = module.exports.SmartSwiper;`, context);
   const installSwiper = () => {
     window.Swiper = context.Swiper = class {
       constructor(el, opts) {

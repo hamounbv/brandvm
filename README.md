@@ -1,57 +1,78 @@
-# brandvm-site-code
+# Brand Vision Webflow custom code
 
-Version-controlled custom code for **brandvm.com** (Webflow site `68b9f0236581de795cba8ec2`), served through **jsDelivr**.
+Custom code for [brandvm.com](https://www.brandvm.com), built with TypeScript and esbuild. Webflow owns markup, layout and interactions. This repository owns the shared custom JavaScript and stylesheet.
 
+## Development
+
+Use Node **22.13 or newer** and pnpm **11.25.0**.
+
+```sh
+pnpm install --frozen-lockfile
+pnpm dev
 ```
-css/brandvm.css        → all site custom CSS (single source of truth)
-js/brandvm.js          → all site custom JS (Lenis init + former Slater Global.js)
-webflow/_header.html   → the Site Settings → Head block (paste into Webflow)
-webflow/_footer.html   → the Site Settings → Footer block (paste into Webflow)
+
+Open `https://brandvm.webflow.io/?bv-dev=1` to use localhost with live reload. `?bv-dev=0` returns to staging. The flag persists only on the staging domain. Custom domains always use the pinned production release, even with a dev query parameter.
+
+```sh
+pnpm check       # strict TypeScript
+pnpm test        # lazy loading, loader fallback and startup regression tests
+pnpm build       # minified JS, CSS and version.json
+pnpm snippets    # generate Webflow head/footer from the deployment configuration
+pnpm validate   # check + tests + build
 ```
 
-`css/brandvm.css` consolidates: the Slater global stylesheet + the `G | Embed Code` "staging" style block + the 7 scattered page/component CSS embeds (deduped; the six drifting project-list copies merged into one canonical block). `js/brandvm.js` = the guarded Lenis init (moved out of the footer inline script) + the former Slater `Global.js` verbatim.
+## Structure
 
-## jsDelivr rules (the important ones)
+```text
+src/index.ts              Webflow-ready entry point; one initialization per feature
+src/modules/              newsletter, flare-border, counter, dot-map, read-more,
+                          lenis and dropdown-close
+src/globals.d.ts           types for libraries already supplied by Webflow
+src/styles.css            custom CSS, in the original cascade order
+dist/                     committed production build (never edit by hand)
+webflow/head-base.html    current tracking, metadata and schema + asset placeholder
+webflow/assets-loader.js development/staging selection and fallback
+webflow/deployment.json  single source for production URLs and staging/dev locations
+webflow/_header.html     generated Site Settings → Head code
+webflow/_footer.html     generated Site Settings → Footer code
+webflow/global-embed.html shared G | Embed Code contents
+webflow/designer-preview.html optional temporary canvas preview snippet
+scripts/                  snippet generation and release preparation
+```
 
-- **The repo must be public.** jsDelivr's `/gh/` endpoint doesn't serve private repos. (Fine — this code ships to every visitor's browser anyway.)
-- URL shape: `https://cdn.jsdelivr.net/gh/USER/REPO@VERSION/path/file`
-- **Auto-minify:** request `brandvm.min.css` / `brandvm.min.js` and jsDelivr generates the minified file for you — commit only the readable source.
-- **Pin a tag for production** (`@1.0.0`). Tagged URLs are cached permanently on the CDN — deploys are immutable and instant to roll back (just point the snippet at the previous tag).
-- `@main` works for testing but is cached up to ~12 h — never use it in the production snippet.
-- Emergency cache purge: `https://purge.jsdelivr.net/gh/USER/REPO@1.0.0/css/brandvm.min.css`
-- Optional: combine both JS files into one request with the `/combine/` endpoint once things are stable.
+The source modules retain the existing selectors, public APIs and behavior. Swiper is installed **for types only**: its JavaScript and CSS still load from the CDN only when a newsletter slider approaches the viewport. Lenis remains optional and is not downloaded. Webflow supplies jQuery and GSAP; the bundle does not include duplicate copies. Initialization goes through `Webflow.push` so asynchronously arriving code can safely use those libraries.
 
-## Release workflow
+## Delivery
 
-1. Edit `css/brandvm.css` or `js/brandvm.js`, commit.
-2. Tag: `git tag v1.0.1 && git push --tags` (tag names with `v` work as `@1.0.1` on jsDelivr).
-3. Bump the version in `webflow/_header.html` + `webflow/_footer.html`, commit.
-4. Paste the updated snippet(s) into Webflow Site Settings → Custom Code, publish.
-5. Verify the new file loads (DevTools → Network), spot-check pages.
+| Environment | Custom assets |
+| --- | --- |
+| Production custom domains | Immutable jsDelivr URLs from `webflow/deployment.json` |
+| `brandvm.webflow.io` | GitHub Pages staging, updated after a validated push to `main` |
+| Staging with `?bv-dev=1` | `http://localhost:3000`, falling back to staging |
 
-Rollback = step 3–4 with the previous tag.
+The production stylesheet is a real head `<link>` and works without JavaScript. Production never attempts localhost or staging assets and has no scroll lock. On staging, a failed stylesheet or script falls back to the next environment with matching CSS and JS. The bootstrap lives in the head; the bundle waits for Webflow readiness.
 
-## One-time Webflow cutover
+GitHub Pages uses the **GitHub Actions** source. The workflow runs type checking, regression tests and a build for pull requests. Pushes to `main` additionally publish the built assets to Pages. Production remains pinned until the generated Webflow snippets are published to custom domains.
 
-**Add (Site Settings):** replace the head with `webflow/_header.html` (keeps X pixel, GTM, metas, Ahrefs, Finsweet, hide-styles, JSON-LD — swaps Slater CSS for the jsDelivr link and drops the dead commented-out viewport meta) and the footer with `webflow/_footer.html`.
+Build output is deliberately committed. CI rebuilds and rejects differences, and verifies that the output files are tracked. This avoids release tags accidentally containing no `dist/`, and avoids repeatedly tracking/untracking build output. Run `pnpm build && pnpm snippets` before committing source or loader changes.
 
-**Then remove, in this order (everything is now in the repo files):**
+## Release
 
-1. `G | Embed Code` component → keep **only** the GTM noscript; delete the duplicate Slater `<link>` and the entire "staging only" `<style>` block.
-2. `S | Projects` component → delete its CSS embed.
-3. Page CSS embeds on Work, Industries / Web Designs / UI-UX / Branding / SEO templates → delete.
-4. Industries page head `<style>` (reduced-motion rule) → delete.
-5. Style Guide (draft) embed → delete.
-6. `G | Embed Code 2` component → no longer needed as the CSS carrier. Either delete it, or keep it **unplaced** as an on-demand Designer preview aid (drop it on a page while designing, remove before publish — and expect it to drift from the repo unless refreshed).
-7. /faq page head → remove the duplicate Finsweet loader (unrelated to this migration, but it's sitting right there).
-8. Slater → archive both files; the repo is the only source of truth now. Slater JS/CSS URLs must no longer appear anywhere in Webflow.
+1. Update `package.json` to the next version; run `pnpm install` if needed. Never reuse a published version.
+2. Build, commit and push the source changes. Let CI deploy staging, and verify behavior on the Webflow staging domain.
+3. Run `pnpm release:prepare`. It validates the code, builds the output, updates both production asset URLs from the package version, and regenerates the snippets. It does not commit, tag, publish or push.
+4. Review and commit the generated changes, then tag **that commit** and push the commit and tag. The tag must contain `dist/index.js`, `dist/styles.css` and `dist/version.json`.
+5. Verify both new jsDelivr URLs return the expected files before changing Webflow. A new tag can take time to become available.
+6. Paste `_header.html` and `_footer.html` into Webflow. Publish to the Webflow subdomain, verify, then publish to the production domains.
 
-**QA before publishing:** hero panorama alignment on Home, service-tab icons, newsletter slider stacking, industry tab hover, read-more toggles, project-list bento (4th card title is now visible on mobile on the service/industry templates — deliberate, matches the S | Projects behavior), smooth scroll working, GTM firing (Tag Assistant), no 404s in the Network tab.
+Do not use branch URLs or `@latest` in production. Do not move a pushed tag. If a release is wrong, use a new patch version.
 
-**Known trade-off:** external stylesheets don't render in the Designer canvas (same as Slater). For canvas work, use the unplaced `G | Embed Code 2` trick above or the Slater-style temporary inline embed, and delete before publish.
+Rollback: restore the deployment configuration and generated snippets from the previous release and republish. The pre-toolchain v1.0.2 head/footer and shared embed are saved in `webflow/rollback-v1.0.2.json`; restoring that release requires its old footer dropdown handler too.
 
-## House rules
+## Webflow and Designer
 
-- Never edit CSS/JS inline in Webflow again — if it's style or behavior, it goes in this repo.
-- Page-specific scripts (About orbit, Home hero panels, Industries carousel tilt) still live in Webflow page settings today; migrate them here later if wanted (load them site-wide with a body-class or element-presence guard, or as separate files).
-- v1.0.0 ships behavior-identical code. Optional future cleanups: drop the DotMap module (dead until an `svg[data-dotmap]` exists — it's in git history if the map section ships), drop the console.log banner.
+`G | Embed Code` keeps its GTM noscript iframe and menu breakpoint rules. Its redundant custom stylesheet link is removed; the published site gets the stylesheet once from the head.
+
+For Designer-only CSS preview, temporarily place `webflow/designer-preview.html` in an Embed. Use the staging link **or** the localhost link, not both; otherwise deleted local rules can remain active from staging. Remove the temporary preview Embed before publishing. Reload the Designer after changes; JavaScript does not run on the canvas.
+
+Keep tracking IDs, verification metadata and the organization JSON-LD in `head-base.html`, then regenerate snippets. Page-specific code such as the Home hero, About orbit and HubSpot form embeds remains in Webflow for a separate migration. Webflow interaction visibility settings, including the delayed text issue, are separate from this build setup.

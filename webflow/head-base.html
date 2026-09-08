@@ -26,8 +26,7 @@
 <!-- Finsweet Attributes -->
 <script async type="module" src="https://cdn.jsdelivr.net/npm/@finsweet/attributes@2/attributes.js" fs-list fs-socialshare fs-autovideo></script>
 
-<link id="bv-site-css" rel="stylesheet" href="https://cdn.jsdelivr.net/gh/hamounbv/brandvm@1.0.1/css/brandvm.min.css" />
-<script>function loadBrandVisionAssets(t){var e=document.getElementById("bv-site-css"),v=/\.webflow\.io$/.test(location.hostname),o=!1;if(v)try{var m=new URLSearchParams(location.search),c=m.get("bv-dev");if(c!==null){o=c==="1";try{localStorage.setItem("bv-dev",c)}catch{}}else o=localStorage.getItem("bv-dev")==="1"}catch{}var a=[];if(o&&a.push({css:t.devBase+"styles.css",js:t.devBase+"index.js"}),v){var u="?v="+Date.now();a.push({css:t.stagingBase+"styles.css"+u,js:t.stagingBase+"index.js"+u})}a.push(t.production);function i(n){var r=a[n];if(!r){console.error("[Brand Vision] Custom code could not be loaded.");return}function l(){var s=document.createElement("script");s.src=r.js,s.async=!0,s.onerror=function(){s.remove(),i(n+1)},document.head.appendChild(s)}if(!e||e.getAttribute("href")===r.css){l();return}var h=!1,f=setTimeout(function(){d(!1)},8e3);function d(s){h||(h=!0,clearTimeout(f),e.onload=e.onerror=null,s?l():i(n+1))}e.onload=function(){d(!0)},e.onerror=function(){d(!1)},e.href=r.css}i(0)}loadBrandVisionAssets({production:{version:"1.0.2",js:"https://cdn.jsdelivr.net/gh/hamounbv/brandvm@1.0.2/js/brandvm.min.js",css:"https://cdn.jsdelivr.net/gh/hamounbv/brandvm@1.0.1/css/brandvm.min.css"},stagingBase:"https://hamounbv.github.io/brandvm/",devBase:"http://localhost:3000/"});</script>
+<!-- BV:ASSETS -->
 
 <style>
   /* Hiding Dev Supports */
