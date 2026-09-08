@@ -17,7 +17,7 @@ Open `https://brandvm.webflow.io/?bv-dev=1` to use localhost with live reload. `
 pnpm check       # strict TypeScript
 pnpm test        # lazy loading, loader fallback and startup regression tests
 pnpm build       # minified JS, CSS and version.json
-pnpm snippets    # generate Webflow head/footer from the deployment configuration
+pnpm snippets    # generate Webflow head/footer/shared Embed from deployment configuration
 pnpm validate   # check + tests + build
 ```
 
@@ -35,8 +35,8 @@ webflow/assets-loader.js development/staging selection and fallback
 webflow/deployment.json  single source for production URLs and staging/dev locations
 webflow/_header.html     generated Site Settings → Head code
 webflow/_footer.html     generated Site Settings → Footer code
-webflow/global-embed.html shared G | Embed Code contents
-webflow/designer-preview.html optional temporary canvas preview snippet
+webflow/global-embed-base.html shared tracking/menu markup + Designer CSS placeholder
+webflow/global-embed.html generated G | Embed Code, including persistent Designer CSS
 scripts/                  snippet generation and release preparation
 ```
 
@@ -63,7 +63,7 @@ Build output is deliberately committed. CI rebuilds and rejects differences, and
 3. Run `pnpm release:prepare`. It validates the code, builds the output, updates both production asset URLs from the package version, and regenerates the snippets. It does not commit, tag, publish or push.
 4. Review and commit the generated changes, then tag **that commit** and push the commit and tag. The tag must contain `dist/index.js`, `dist/styles.css` and `dist/version.json`.
 5. Verify both new jsDelivr URLs return the expected files before changing Webflow. A new tag can take time to become available.
-6. Paste `_header.html` and `_footer.html` into Webflow. Publish to the Webflow subdomain, verify, then publish to the production domains.
+6. Paste `_header.html` and `_footer.html` into Site Settings, and `global-embed.html` into the shared `G | Embed Code` component. All three are generated from one deployment configuration. Publish to the Webflow subdomain, verify, then publish to the production domains.
 
 Do not use branch URLs or `@latest` in production. Do not move a pushed tag. If a release is wrong, use a new patch version.
 
@@ -71,8 +71,10 @@ Rollback: restore the deployment configuration and generated snippets from the p
 
 ## Webflow and Designer
 
-`G | Embed Code` keeps its GTM noscript iframe and menu breakpoint rules. Its redundant custom stylesheet link is removed; the published site gets the stylesheet once from the head.
+`G | Embed Code` permanently includes a stylesheet link so custom styles render in the Designer canvas. It uses the same pinned CSS version as production. The component also keeps its GTM noscript iframe and menu breakpoint rules.
 
-For Designer-only CSS preview, temporarily place `webflow/designer-preview.html` in an Embed. Use the staging link **or** the localhost link, not both; otherwise deleted local rules can remain active from staging. Remove the temporary preview Embed before publishing. Reload the Designer after changes; JavaScript does not run on the canvas.
+On published pages, the Embed's small script removes its duplicate link when the head stylesheet is present. In the Designer, Site Settings and inline scripts do not run, so the embedded link stays active. No temporary Embed needs adding or removing. Reload the Designer after updating the component. With JavaScript disabled, both published links use the same pinned file and rules.
+
+Designer previews show the published release. To test unreleased styles, use the Webflow staging domain (or `?bv-dev=1` there). Each release regenerates the Embed's CSS URL alongside the head and footer; update all three in Webflow to keep Designer and production aligned.
 
 Keep tracking IDs, verification metadata and the organization JSON-LD in `head-base.html`, then regenerate snippets. Page-specific code such as the Home hero, About orbit and HubSpot form embeds remains in Webflow for a separate migration. Webflow interaction visibility settings, including the delayed text issue, are separate from this build setup.
